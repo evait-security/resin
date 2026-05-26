@@ -6,6 +6,7 @@ import re
 import sys
 import traceback
 import tempfile
+from collections import OrderedDict
 
 from impacket.smbserver import SimpleSMBServer
 
@@ -25,7 +26,8 @@ class CredentialHandler(logging.Handler):
     def __init__(self, loop):
         super().__init__()
         self.loop = loop
-        self._connections = {}  # thread_id -> (ip, port)
+        self._connections = OrderedDict()  # thread_id -> (ip, port)
+        self._max_connections = 1000
         self._last_ip = "unknown"
         self._last_port = 0
 
@@ -39,6 +41,8 @@ class CredentialHandler(logging.Handler):
             ip = conn_match.group(1)
             port = int(conn_match.group(2))
             self._connections[thread_id] = (ip, port)
+            if len(self._connections) > self._max_connections:
+                self._connections.popitem(last=False)
             self._last_ip = ip
             self._last_port = port
             mac = get_mac_for_ip(ip)
