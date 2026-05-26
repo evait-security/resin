@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: resin
+      POSTGRES_DB: resin
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pgsock:/var/run/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resin"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  resin:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      WEBHOOK_URL: ""
+      DISPATCH_INTERVAL: "5"
+    volumes:
+      - pgsock:/var/run/postgresql
+    ports:
+      - "21:21"
+      - "22:22"
+      - "80:80"
+      - "443:443"
+      - "445:445"
+      - "161:161/udp"
+      - "3306:3306"
+      - "6379:6379"
+      - "127.0.0.1:1337:1337"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',6379)); s.send(b'PING\\r\\n'); assert b'PONG' in s.recv(64); s.close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  tests:
+    build: .
+    depends_on:
+      resin:
+        condition: service_healthy
+    environment:
+      RESIN_HOST: resin
+    entrypoint: ["pytest", "tests/", "-v", "--tb=short"]
+    network_mode: "service:resin"
+
+volumes:
+  pgsock:

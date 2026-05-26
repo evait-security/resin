@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>resin - honeypot monitor</title>
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+<link rel="stylesheet" href="/static/style.css">
+<style>[x-cloak] { display: none !important; }</style>
+<script src="/static/app.js" defer></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+</head>
+<body>
+<main class="container" x-data="resinApp()" x-cloak>
+  <header class="header">
+    <div class="brand">
+      <img src="/logo.svg" alt="resin" class="brand-logo">
+      <div>
+        <h1>resin</h1>
+        <p class="tagline">honeypot monitor</p>
+      </div>
+    </div>
+    <div class="status" x-show="connected">
+      <span class="status-dot"></span> live
+    </div>
+  </header>
+
+  <section class="controls">
+    <input type="search" placeholder="search events..." x-model="searchQuery" @input.debounce.300ms="fetchEvents()">
+    <select x-model="serviceFilter" @change="fetchEvents()">
+      <option value="">all services</option>
+      <option value="ssh">SSH</option>
+      <option value="ftp">FTP</option>
+      <option value="http">HTTP</option>
+      <option value="smb">SMB</option>
+      <option value="snmp">SNMP</option>
+      <option value="mysql">MySQL</option>
+      <option value="redis">Redis</option>
+    </select>
+    <span class="event-count" x-text="events.length + ' events'"></span>
+  </section>
+
+  <section class="event-list">
+    <template x-for="event in events" :key="event.id">
+      <article class="event-card" :class="'service-' + event.service" :data-expanded="event.expanded || undefined" @click="event.expanded = !event.expanded">
+        <div class="event-header">
+          <span class="service-badge" x-text="event.service"></span>
+          <span class="event-action" x-text="event.action"></span>
+          <span class="event-ip" x-text="event.source_ip"></span>
+          <time class="event-time" x-text="formatTime(event.created_at)"></time>
+        </div>
+        <div class="event-details" x-show="event.username || event.password">
+          <span x-show="event.username" class="credential">
+            <strong>user:</strong> <code x-text="event.username"></code>
+          </span>
+          <span x-show="event.password" class="credential">
+            <strong>pass:</strong> <code x-text="event.password"></code>
+          </span>
+          <span x-show="event.mac_address" class="credential">
+            <strong>mac:</strong> <code x-text="event.mac_address"></code>
+          </span>
+        </div>
+        <div class="event-data" x-show="event.expanded && event.data && Object.keys(event.data).length > 0">
+          <pre x-text="JSON.stringify(event.data, null, 2)"></pre>
+        </div>
+      </article>
+    </template>
+    <p x-show="events.length === 0" class="empty-state">no events captured yet. waiting for connections...</p>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: resin
+      POSTGRES_DB: resin
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - pgsock:/var/run/postgresql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  resin:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    volumes:
+      - resin_data:/data
+      - pgsock:/var/run/postgresql
+    ports:
+      - "21:21"
+      - "22:22"
+      - "80:80"
+      - "443:443"
+      - "445:445"
+      - "161:161/udp"
+      - "3306:3306"
+      - "6379:6379"
+      - "127.0.0.1:1337:1337"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  resin_data:
+  pgsock:
