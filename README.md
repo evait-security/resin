@@ -283,7 +283,7 @@ All services run in a single Python process using asyncio. Events are logged dir
 
 ## Network Mode
 
-resin runs with `network_mode: host` so it can read the host's ARP table for real client MAC addresses. The web dashboard binds exclusively to `127.0.0.1:1337` — it is never exposed to the network.
+resin runs with `network_mode: host` so it can read the host's ARP table for real client MAC addresses. The web dashboard binds exclusively to `127.0.0.1:1337` - it is never exposed to the network.
 
 ---
 

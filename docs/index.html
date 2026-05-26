@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>resin - Network Service Honeypot</title>
+<meta name="description" content="Deploy realistic network services that trap attackers and deliver every interaction to your webhook as JSON.">
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #d4880f;
+  --accent-dim: rgba(212, 136, 15, 0.15);
+  --green: #3fb950;
+  --red: #f85149;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Hero */
+header {
+  text-align: center;
+  padding: 80px 0 60px;
+}
+
+header img {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 24px;
+}
+
+header h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+
+header p {
+  font-size: 1.25rem;
+  color: var(--muted);
+  max-width: 600px;
+  margin: 0 auto 32px;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #000;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: opacity 0.2s;
+}
+
+.cta:hover { opacity: 0.85; }
+
+/* Sections */
+section {
+  padding: 60px 0;
+  border-top: 1px solid var(--border);
+}
+
+section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+section h2 span {
+  color: var(--accent);
+}
+
+/* Feature grid */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.feature {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.feature h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.feature p {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Services table */
+.services-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.services-table th,
+.services-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.services-table th {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.services-table td:first-child {
+  font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+/* Code block */
+.code-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  overflow-x: auto;
+  font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.code-block .comment { color: #6e7681; }
+.code-block .cmd { color: var(--text); }
+
+/* Architecture */
+.arch {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  text-align: center;
+}
+
+.arch-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 12px;
+}
+
+.arch-item .label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.arch-item .value {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Persona callout */
+.callout {
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.callout p {
+  font-size: 0.9rem;
+}
+
+.callout strong {
+  color: var(--accent);
+}
+
+/* Footer */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  header { padding: 48px 0 40px; }
+  header h1 { font-size: 2rem; }
+  header p { font-size: 1rem; }
+  .arch { grid-template-columns: 1fr; }
+  section { padding: 40px 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <img src="logo.svg" alt="resin logo">
+    <h1>resin</h1>
+    <p>Deploy realistic network services that trap attackers and deliver every interaction to your webhook as JSON.</p>
+    <a href="https://github.com/evait-security/resin" class="cta">
+      View on GitHub
+    </a>
+  </header>
+
+  <section>
+    <h2>How it <span>works</span></h2>
+    <div class="features">
+      <div class="feature">
+        <h3>Deploy</h3>
+        <p>Single <code>docker compose up -d</code>. One environment variable for your webhook URL. No agents, no cloud dependencies.</p>
+      </div>
+      <div class="feature">
+        <h3>Attract</h3>
+        <p>8 realistic services respond with proper protocol handshakes, banners, and error messages. Indistinguishable from real targets.</p>
+      </div>
+      <div class="feature">
+        <h3>Capture</h3>
+        <p>Every connection, login attempt, command, and credential gets logged with source IP, MAC address, and full payload data.</p>
+      </div>
+      <div class="feature">
+        <h3>Deliver</h3>
+        <p>Events batch every 30 seconds into a single JSON POST to your webhook. Failed deliveries retry automatically.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <p><strong>Device persona:</strong> From the network, resin looks like a Siemens DESIGO CC building automation controller - a high-value target that attracts lateral movement, credential spraying, and enumeration attempts.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Trapped <span>services</span></h2>
+    <table class="services-table">
+      <thead>
+        <tr><th>Port</th><th>Protocol</th><th>Banner</th><th>Captures</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>21</td><td>FTP</td><td>vsFTPd 3.0.5</td><td>Credentials, directory listing attempts</td></tr>
+        <tr><td>22</td><td>SSH</td><td>OpenSSH 8.9p1</td><td>Usernames, passwords, key attempts</td></tr>
+        <tr><td>80/443</td><td>HTTP/S</td><td>Siemens DESIGO CC v5.0</td><td>Login credentials, request paths, user agents</td></tr>
+        <tr><td>445</td><td>SMB</td><td>SMB 3.1.1</td><td>NTLMv2 hashes, domain names, workstations</td></tr>
+        <tr><td>161/udp</td><td>SNMP</td><td>Siemens building controller</td><td>Community strings, queried OIDs</td></tr>
+        <tr><td>3306</td><td>MySQL</td><td>MariaDB 10.11.6</td><td>Usernames, auth packets</td></tr>
+        <tr><td>6379</td><td>Redis</td><td>Redis 7.2.4</td><td>AUTH passwords, commands</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Three commands to <span>deploy</span></h2>
+    <div class="code-block">
+      <span class="cmd">git clone https://github.com/evait-security/resin.git && cd resin</span><br>
+      <span class="cmd">echo "WEBHOOK_URL=https://your-endpoint.example.com/hook" > .env</span><br>
+      <span class="cmd">docker compose up -d</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Under the <span>hood</span></h2>
+    <div class="arch">
+      <div class="arch-item">
+        <div class="label">Runtime</div>
+        <div class="value">Single process</div>
+      </div>
+      <div class="arch-item">
+        <div class="label">Concurrency</div>
+        <div class="value">asyncio</div>
+      </div>
+      <div class="arch-item">
+        <div class="label">Storage</div>
+        <div class="value">PostgreSQL</div>
+      </div>
+      <div class="arch-item">
+        <div class="label">DB Connection</div>
+        <div class="value">Unix socket</div>
+      </div>
+      <div class="arch-item">
+        <div class="label">Network</div>
+        <div class="value">Host mode</div>
+      </div>
+      <div class="arch-item">
+        <div class="label">Dashboard</div>
+        <div class="value">localhost:1337</div>
+      </div>
+    </div>
+    <div class="features" style="margin-top: 16px;">
+      <div class="feature">
+        <h3>No passwords anywhere</h3>
+        <p>PostgreSQL connects via Unix socket with peer auth. No TCP, no credentials to manage or leak.</p>
+      </div>
+      <div class="feature">
+        <h3>MAC address capture</h3>
+        <p>Host network mode gives direct access to the ARP table - every event includes the attacker's hardware address when on the same L2 segment.</p>
+      </div>
+      <div class="feature">
+        <h3>Non-root container</h3>
+        <p>Runs as unprivileged user with only CAP_NET_BIND_SERVICE. Limits blast radius if a service is compromised.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Webhook <span>payload</span></h2>
+    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"source": "resin",<br>
+&nbsp;&nbsp;"dispatched_at": "2026-05-26T14:30:00+00:00",<br>
+&nbsp;&nbsp;"count": 2,<br>
+&nbsp;&nbsp;"events": [<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"service": "ssh",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"source_ip": "192.168.1.100",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"mac_address": "aa:bb:cc:dd:ee:ff",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"action": "login_attempt",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"username": "root",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"password": "toor",<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"timestamp": "2026-05-26T14:29:45.123Z"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;]<br>
+}
+    </div>
+  </section>
+
+  <footer>
+    <p>Built by <a href="https://github.com/evait-security">evait security</a> - Open source under MIT license.</p>
+  </footer>
+</div>
+
+</body>
+</html>
