@@ -25,17 +25,20 @@ class CredentialHandler(logging.Handler):
     def __init__(self, loop):
         super().__init__()
         self.loop = loop
+        self._connections = {}  # thread_id -> (ip, port)
         self._last_ip = "unknown"
         self._last_port = 0
 
     def emit(self, record):
         msg = self.format(record)
+        thread_id = threading.current_thread().ident
 
         # Capture connection info
         conn_match = re.search(r"Incoming connection \((\d+\.\d+\.\d+\.\d+),(\d+)\)", msg)
         if conn_match:
             ip = conn_match.group(1)
             port = int(conn_match.group(2))
+            self._connections[thread_id] = (ip, port)
             self._last_ip = ip
             self._last_port = port
             mac = get_mac_for_ip(ip)
@@ -51,14 +54,15 @@ class CredentialHandler(logging.Handler):
             )
             return
 
+        # Resolve IP from thread-local state, fallback to last known
+        ip, port = self._connections.get(thread_id, (self._last_ip, self._last_port))
+
         # Capture NTLM auth messages
         auth_match = AUTH_MSG_RE.search(msg)
         if auth_match:
             domain = auth_match.group(1)
             username = auth_match.group(2)
             workstation = auth_match.group(3)
-            ip = self._last_ip
-            port = self._last_port
             mac = get_mac_for_ip(ip)
             display_user = f"{domain}\\{username}" if domain else username
 
@@ -86,8 +90,6 @@ class CredentialHandler(logging.Handler):
         if hash_match:
             username = hash_match.group(1)
             domain = hash_match.group(2)
-            ip = self._last_ip
-            port = self._last_port
             mac = get_mac_for_ip(ip)
             ntlm_hash = msg.strip()
 

@@ -228,6 +228,26 @@ class TestWebUI:
         assert resp.headers.get("Content-Type") == "text/event-stream"
         resp.close()
 
+    def test_static_path_traversal_blocked(self):
+        import urllib.request
+        import urllib.error
+        try:
+            urllib.request.urlopen(
+                f"http://{RESIN_HOST}:1337/static/..%2F..%2Fetc%2Fpasswd", timeout=5
+            )
+            assert False, "Should have returned 403 or 404"
+        except urllib.error.HTTPError as e:
+            assert e.code in (403, 404)
+
+    def test_api_events_invalid_limit(self):
+        import urllib.request
+        import json
+        resp = urllib.request.urlopen(
+            f"http://{RESIN_HOST}:1337/api/events?limit=abc", timeout=10
+        )
+        data = json.loads(resp.read().decode())
+        assert isinstance(data, list)
+
 
 class TestEventLogging:
     """Verify that service interactions create database entries visible via API."""

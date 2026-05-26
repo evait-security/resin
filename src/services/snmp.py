@@ -219,12 +219,37 @@ def build_snmp_response(request_id, community, oid_str, value, value_type):
 class SNMPProtocol(asyncio.DatagramProtocol):
     def __init__(self):
         self.transport = None
+        self._rate_limit = {}  # ip -> (count, window_start)
+        self._max_per_second = 10
 
     def connection_made(self, transport):
         self.transport = transport
 
+    def _is_rate_limited(self, ip):
+        import time
+        now = time.monotonic()
+        if ip in self._rate_limit:
+            count, start = self._rate_limit[ip]
+            if now - start < 1.0:
+                if count >= self._max_per_second:
+                    return True
+                self._rate_limit[ip] = (count + 1, start)
+            else:
+                self._rate_limit[ip] = (1, now)
+        else:
+            self._rate_limit[ip] = (1, now)
+            # Evict old entries periodically
+            if len(self._rate_limit) > 1000:
+                cutoff = now - 10
+                self._rate_limit = {k: v for k, v in self._rate_limit.items() if v[1] > cutoff}
+        return False
+
     def datagram_received(self, data, addr):
         ip, port = addr
+
+        if self._is_rate_limited(ip):
+            return
+
         mac = get_mac_for_ip(ip)
 
         parsed = parse_snmp_request(data)

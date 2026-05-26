@@ -1,14 +1,15 @@
 import asyncio
 import json
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timezone
 from src.config import WEBHOOK_URL, DISPATCH_INTERVAL
 from src.database import fetch_pending, mark_dispatched
 
 
 async def dispatch_loop():
     """Every DISPATCH_INTERVAL seconds, batch pending events and POST to webhook."""
-    print(f"[resin] Dispatcher started (interval={DISPATCH_INTERVAL}s, url={WEBHOOK_URL or 'NOT SET'})")
+    url_display = (WEBHOOK_URL[:40] + "...") if WEBHOOK_URL and len(WEBHOOK_URL) > 40 else (WEBHOOK_URL or "NOT SET")
+    print(f"[resin] Dispatcher started (interval={DISPATCH_INTERVAL}s, url={url_display})")
 
     while True:
         await asyncio.sleep(DISPATCH_INTERVAL)
@@ -41,7 +42,7 @@ async def dispatch_loop():
 
             payload = {
                 "source": "resin",
-                "dispatched_at": datetime.utcnow().isoformat() + "Z",
+                "dispatched_at": datetime.now(timezone.utc).isoformat(),
                 "count": len(events),
                 "events": events,
             }

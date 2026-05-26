@@ -18,7 +18,10 @@ async def handle_index(request):
 async def handle_api_events(request):
     service = request.query.get("service", None)
     query = request.query.get("q", None)
-    limit = min(int(request.query.get("limit", "200")), 1000)
+    try:
+        limit = min(int(request.query.get("limit", "200")), 1000)
+    except (ValueError, TypeError):
+        limit = 200
 
     rows = await get_events(limit=limit, service=service, query=query)
     events = []
@@ -87,7 +90,9 @@ async def handle_event_stream(request):
 
 async def handle_static(request):
     filename = request.match_info["filename"]
-    filepath = STATIC_DIR / filename
+    filepath = (STATIC_DIR / filename).resolve()
+    if not filepath.is_relative_to(STATIC_DIR.resolve()):
+        raise web.HTTPForbidden()
     if not filepath.exists() or not filepath.is_file():
         raise web.HTTPNotFound()
     content_type = "text/css" if filename.endswith(".css") else "application/javascript"
