@@ -7,6 +7,7 @@ POSTGRES_DSN = os.environ.get(
     "postgresql://resin@/resin?host=/var/run/postgresql",
 )
 DISPATCH_INTERVAL = int(os.environ.get("DISPATCH_INTERVAL", "30"))
+WEB_HOST = os.environ.get("WEB_HOST", "127.0.0.1")
 WEB_PORT = int(os.environ.get("WEB_PORT", "1337"))
 SSH_HOST_KEY_PATH = os.environ.get("SSH_HOST_KEY_PATH", "/data/ssh_host_key")
 TLS_CERT_PATH = os.environ.get("TLS_CERT_PATH", "/data/tls_cert.pem")

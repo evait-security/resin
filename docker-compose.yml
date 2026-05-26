@@ -22,19 +22,10 @@ services:
       postgres:
         condition: service_healthy
     env_file: .env
+    network_mode: host
     volumes:
       - resin_data:/data
       - pgsock:/var/run/postgresql
-    ports:
-      - "21:21"
-      - "22:22"
-      - "80:80"
-      - "443:443"
-      - "445:445"
-      - "161:161/udp"
-      - "3306:3306"
-      - "6379:6379"
-      - "127.0.0.1:1337:1337"
     restart: unless-stopped
 
 volumes:

@@ -283,15 +283,7 @@ All services run in a single Python process using asyncio. Events are logged dir
 
 ## Network Mode
 
-For accurate MAC address logging, ensure the resin container can see the actual ARP table. In the default bridge network mode, you will see container network MACs. If you need real client MACs, switch to host networking:
-
-```yaml
-services:
-  resin:
-    network_mode: host
-```
-
-Note that with host networking, the `127.0.0.1:1337` binding in docker-compose ports is not used. The web dashboard will be accessible on all interfaces on port 1337. Adjust firewall rules accordingly.
+resin runs with `network_mode: host` so it can read the host's ARP table for real client MAC addresses. The web dashboard binds exclusively to `127.0.0.1:1337` — it is never exposed to the network.
 
 ---
 

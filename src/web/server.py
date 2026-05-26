@@ -3,7 +3,7 @@ import json
 from aiohttp import web
 from pathlib import Path
 from src.database import get_events, get_latest_id
-from src.config import WEB_PORT
+from src.config import WEB_PORT, WEB_HOST
 
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -101,7 +101,8 @@ async def handle_logo(request):
     raise web.HTTPNotFound()
 
 
-async def start_web_server(host="0.0.0.0", port=None):
+async def start_web_server(host=None, port=None):
+    host = host or WEB_HOST
     port = port or WEB_PORT
     app = web.Application()
     app.router.add_get("/", handle_index)
