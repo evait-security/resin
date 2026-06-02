@@ -4,6 +4,18 @@ from aiohttp import web
 from src.database import log_event
 from src.mac_lookup import get_mac_for_ip
 from src.config import TLS_CERT_PATH, TLS_KEY_PATH
+from src.whitelist import is_whitelisted
+
+
+@web.middleware
+async def whitelist_middleware(request, handler):
+    """Drop whitelisted clients before any logging or response handling."""
+    if is_whitelisted(request.remote):
+        transport = request.transport
+        if transport:
+            transport.abort()
+        raise web.HTTPServiceUnavailable()
+    return await handler(request)
 
 LOGIN_PAGE = """<!DOCTYPE html>
 <html lang="en">
@@ -196,7 +208,7 @@ def generate_self_signed_cert():
 
 
 def _create_app():
-    app = web.Application()
+    app = web.Application(middlewares=[whitelist_middleware])
     app.router.add_get("/", handle_index)
     app.router.add_post("/api/login", handle_login)
     app.router.add_route("*", "/{path:.*}", handle_any)

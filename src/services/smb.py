@@ -12,6 +12,7 @@ from impacket.smbserver import SimpleSMBServer
 
 from src.database import log_event
 from src.mac_lookup import get_mac_for_ip
+from src.whitelist import is_whitelisted
 
 
 # Regex to parse impacket's NTLM auth log lines
@@ -45,6 +46,8 @@ class CredentialHandler(logging.Handler):
                 self._connections.popitem(last=False)
             self._last_ip = ip
             self._last_port = port
+            if is_whitelisted(ip):
+                return
             mac = get_mac_for_ip(ip)
             asyncio.run_coroutine_threadsafe(
                 log_event(
@@ -60,6 +63,10 @@ class CredentialHandler(logging.Handler):
 
         # Resolve IP from thread-local state, fallback to last known
         ip, port = self._connections.get(thread_id, (self._last_ip, self._last_port))
+
+        # Whitelisted clients never generate events
+        if is_whitelisted(ip):
+            return
 
         # Capture NTLM auth messages
         auth_match = AUTH_MSG_RE.search(msg)

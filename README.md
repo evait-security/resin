@@ -278,6 +278,19 @@ All services run in a single Python process using asyncio. Events are logged dir
 |----------|---------|-------------|
 | `WEBHOOK_URL` | (empty) | HTTP endpoint for event delivery. Leave empty to disable. |
 | `DISPATCH_INTERVAL` | `30` | Seconds between webhook batch sends. |
+| `WHITELIST_IPS` | (empty) | Comma/space separated list of IPs and CIDR ranges to ignore. Connections from these sources are dropped at the earliest possible point and never generate events. |
+
+### IP Whitelist
+
+Use `WHITELIST_IPS` to exclude trusted sources (your own monitoring, scanners, or admin hosts) from the honeypot. Any client whose source IP matches an entry is dropped immediately by every service before any logging happens, so no events are created and no webhook payloads are sent for it.
+
+Accepts individual IPv4/IPv6 addresses and CIDR ranges, separated by commas or whitespace:
+
+```
+WHITELIST_IPS=192.168.1.10, 10.0.0.0/24, 203.0.113.5
+```
+
+Invalid entries are ignored with a warning at startup. Leave empty to disable whitelisting.
 
 ---
 

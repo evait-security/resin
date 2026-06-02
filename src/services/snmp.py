@@ -2,6 +2,7 @@ import asyncio
 import struct
 from src.database import log_event
 from src.mac_lookup import get_mac_for_ip
+from src.whitelist import is_whitelisted
 
 
 # SNMP BER/ASN.1 constants
@@ -246,6 +247,9 @@ class SNMPProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data, addr):
         ip, port = addr
+
+        if is_whitelisted(ip):
+            return
 
         if self._is_rate_limited(ip):
             return

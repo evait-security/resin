@@ -1,6 +1,7 @@
 import asyncio
 from src.database import log_event
 from src.mac_lookup import get_mac_for_ip
+from src.whitelist import is_whitelisted
 
 
 REDIS_VERSION = "7.2.4"
@@ -114,6 +115,11 @@ class RedisHoneypot:
         peername = writer.get_extra_info("peername")
         ip = peername[0] if peername else "unknown"
         port = peername[1] if peername else 0
+
+        if is_whitelisted(ip):
+            writer.close()
+            return
+
         mac = get_mac_for_ip(ip)
 
         await log_event(

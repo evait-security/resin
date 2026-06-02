@@ -4,6 +4,7 @@ import hashlib
 import os
 from src.database import log_event
 from src.mac_lookup import get_mac_for_ip
+from src.whitelist import is_whitelisted
 
 
 SERVER_VERSION = "5.5.5-10.11.6-MariaDB"
@@ -99,6 +100,11 @@ class MySQLHoneypot:
         peername = writer.get_extra_info("peername")
         ip = peername[0] if peername else "unknown"
         port = peername[1] if peername else 0
+
+        if is_whitelisted(ip):
+            writer.close()
+            return
+
         mac = get_mac_for_ip(ip)
 
         self.connection_counter += 1

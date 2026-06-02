@@ -2,6 +2,7 @@ import asyncio
 import os
 from src.database import log_event
 from src.mac_lookup import get_mac_for_ip
+from src.whitelist import is_whitelisted
 
 
 BANNER = "220 (vsFTPd 3.0.5)\r\n"
@@ -213,6 +214,11 @@ class FTPSession:
 
 async def start_ftp_service(host="0.0.0.0", port=21):
     async def handle_client(reader, writer):
+        peername = writer.get_extra_info("peername")
+        ip = peername[0] if peername else "unknown"
+        if is_whitelisted(ip):
+            writer.close()
+            return
         session = FTPSession(reader, writer)
         await session.handle()
 

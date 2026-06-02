@@ -3,11 +3,13 @@ import os
 from src.database import log_event
 from src.mac_lookup import get_mac_for_ip
 from src.config import SSH_HOST_KEY_PATH
+from src.whitelist import is_whitelisted
 
 
 class HoneypotSSHServer(asyncssh.SSHServer):
     def __init__(self):
         self._conn = None
+        self._whitelisted = False
 
     def connection_made(self, conn):
         self._conn = conn
@@ -18,6 +20,10 @@ class HoneypotSSHServer(asyncssh.SSHServer):
         else:
             self._ip = "unknown"
             self._port = 0
+
+        if is_whitelisted(self._ip):
+            self._whitelisted = True
+            conn.abort()
 
     def connection_lost(self, exc):
         pass
@@ -32,6 +38,8 @@ class HoneypotSSHServer(asyncssh.SSHServer):
         return True
 
     async def validate_password(self, username, password):
+        if self._whitelisted:
+            return False
         mac = get_mac_for_ip(self._ip)
         await log_event(
             service="ssh",
@@ -46,6 +54,8 @@ class HoneypotSSHServer(asyncssh.SSHServer):
         return False
 
     async def validate_public_key(self, username, key):
+        if self._whitelisted:
+            return False
         mac = get_mac_for_ip(self._ip)
         await log_event(
             service="ssh",
