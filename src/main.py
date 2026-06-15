@@ -13,6 +13,7 @@ from src.services.smb import start_smb_service
 from src.services.snmp import start_snmp_service
 from src.services.mysql import start_mysql_service
 from src.services.redis import start_redis_service
+from src.whitelist import load_whitelist, watch_whitelist
 
 
 async def wait_for_postgres():
@@ -37,6 +38,7 @@ async def wait_for_postgres():
 async def main():
     print("[resin] Starting honeypot services...")
     print(f"[resin] Webhook URL: {WEBHOOK_URL or 'NOT CONFIGURED'}")
+    load_whitelist()
 
     await wait_for_postgres()
     await init_pool()
@@ -100,22 +102,25 @@ async def main():
 
     print(f"[resin] Active services: {', '.join(services)}")
 
-    # Start dispatcher as a background task
+    # Start dispatcher and whitelist watcher as background tasks
     tasks = [
         asyncio.create_task(dispatch_loop()),
+        asyncio.create_task(watch_whitelist()),
     ]
 
     # Keep running
     stop = asyncio.Event()
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, stop.set)
+    loop.add_signal_handler(signal.SIGHUP, load_whitelist)
 
     await stop.wait()
 
     print("[resin] Shutting down...")
     for task in tasks:
         task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
     await close_pool()
 
 

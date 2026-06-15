@@ -278,19 +278,36 @@ All services run in a single Python process using asyncio. Events are logged dir
 |----------|---------|-------------|
 | `WEBHOOK_URL` | (empty) | HTTP endpoint for event delivery. Leave empty to disable. |
 | `DISPATCH_INTERVAL` | `30` | Seconds between webhook batch sends. |
-| `WHITELIST_IPS` | (empty) | Comma/space separated list of IPs and CIDR ranges to ignore. Connections from these sources are dropped at the earliest possible point and never generate events. |
+| `WHITELIST_IPS` | (empty) | Fallback comma/space-separated IPs and CIDR ranges used when `WHITELIST_FILE` is absent. |
+| `WHITELIST_FILE` | `/data/whitelist.txt` | Path to the whitelist file inside the container. Reloaded automatically on change. Takes precedence over `WHITELIST_IPS`. |
+| `WHITELIST_RELOAD_INTERVAL` | `60` | Poll interval in seconds for detecting whitelist file changes. Send `SIGHUP` for immediate reload. |
 
 ### IP Whitelist
 
-Use `WHITELIST_IPS` to exclude trusted sources (your own monitoring, scanners, or admin hosts) from the honeypot. Any client whose source IP matches an entry is dropped immediately by every service before any logging happens, so no events are created and no webhook payloads are sent for it.
+Any client whose source IP matches a whitelist entry is dropped immediately by every service before any logging happens — no events are created and no webhook payloads are sent for it.
 
-Accepts individual IPv4/IPv6 addresses and CIDR ranges, separated by commas or whitespace:
+**File-based (recommended):** edit `data/whitelist.txt` in the repo. The file is bind-mounted into the container and checked every 60 seconds (configurable via `WHITELIST_RELOAD_INTERVAL`). For an immediate reload without restarting:
+
+```bash
+docker compose exec resin kill -HUP 1
+```
+
+The file accepts individual IPv4/IPv6 addresses and CIDR ranges, one per line. Comments and blank lines are ignored:
+
+```
+# my admin host
+192.168.1.10
+10.0.0.0/24
+203.0.113.5
+```
+
+**Env-var fallback:** set `WHITELIST_IPS` in `.env`. Used only when `WHITELIST_FILE` is absent or empty.
 
 ```
 WHITELIST_IPS=192.168.1.10, 10.0.0.0/24, 203.0.113.5
 ```
 
-Invalid entries are ignored with a warning at startup. Leave empty to disable whitelisting.
+Invalid entries are ignored with a warning at startup.
 
 ---
 
@@ -302,23 +319,15 @@ resin runs with `network_mode: host` so it can read the host's ARP table for rea
 
 ## Running Tests
 
-The test suite validates that every service responds correctly, logs events to the database, and the web dashboard serves data. Tests run inside Docker against the live stack.
+The test suite validates that every service responds correctly, logs events to the database, and the web dashboard serves data. Tests run inside Docker against a dedicated test stack.
 
-### Quick run (inside running containers)
-
-If you already have `docker compose up -d` running:
-
-```bash
-docker compose exec resin pytest /app/tests/ -v
-```
-
-### Full isolated test run
-
-Spins up a fresh stack with a dedicated test runner container:
+### Run
 
 ```bash
 docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
 ```
+
+The test stack builds the `test` image target (Debian-slim with pytest and paramiko) — separate from the production image (distroless, no shell, no test tooling).
 
 ### What gets tested
 
@@ -337,11 +346,12 @@ docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
 
 ### Webhook dispatch test
 
-`tests/test_webhook.py` contains a full-cycle test that starts an HTTP server, triggers events, and waits for the dispatcher to POST them. Requires `TEST_WEBHOOK_ENABLED=1` and the webhook URL pointed at the test listener:
+`tests/test_webhook.py` contains a full-cycle test that starts an HTTP server, triggers events, and waits for the dispatcher to POST them. Requires `TEST_WEBHOOK_ENABLED=1`:
 
 ```bash
-docker compose exec resin pytest /app/tests/test_webhook.py -v \
-  --override-ini="env=TEST_WEBHOOK_ENABLED=1"
+docker compose -f docker-compose.test.yml run --rm \
+  -e TEST_WEBHOOK_ENABLED=1 tests \
+  pytest tests/test_webhook.py -v
 ```
 
 ---
