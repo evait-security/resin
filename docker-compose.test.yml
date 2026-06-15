@@ -15,7 +15,9 @@ services:
       retries: 10
 
   resin:
-    build: .
+    build:
+      context: .
+      target: test
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,7 +44,9 @@ services:
       start_period: 15s
 
   tests:
-    build: .
+    build:
+      context: .
+      target: test
     depends_on:
       resin:
         condition: service_healthy

@@ -304,13 +304,7 @@ resin runs with `network_mode: host` so it can read the host's ARP table for rea
 
 The test suite validates that every service responds correctly, logs events to the database, and the web dashboard serves data. Tests run inside Docker against the live stack.
 
-### Quick run (inside running containers)
-
-If you already have `docker compose up -d` running:
-
-```bash
-docker compose exec resin pytest /app/tests/ -v
-```
+The production image (`docker compose up`) is a hardened, distroless Wolfi/Chainguard build that intentionally ships **only** the Python runtime and the application code — no shell, no package manager, no test tooling. Tests therefore run through the dedicated test stack, which builds the `test` stage of the same `Dockerfile` (full Debian-slim + `pytest` + `paramiko` + the `tests/` tree).
 
 ### Full isolated test run
 
@@ -337,11 +331,12 @@ docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
 
 ### Webhook dispatch test
 
-`tests/test_webhook.py` contains a full-cycle test that starts an HTTP server, triggers events, and waits for the dispatcher to POST them. Requires `TEST_WEBHOOK_ENABLED=1` and the webhook URL pointed at the test listener:
+`tests/test_webhook.py` contains a full-cycle test that starts an HTTP server, triggers events, and waits for the dispatcher to POST them. It requires `TEST_WEBHOOK_ENABLED=1` and the webhook URL pointed at the test listener. Run it through the test stack (the production image does not contain pytest):
 
 ```bash
-docker compose exec resin pytest /app/tests/test_webhook.py -v \
-  --override-ini="env=TEST_WEBHOOK_ENABLED=1"
+docker compose -f docker-compose.test.yml run --rm \
+  -e TEST_WEBHOOK_ENABLED=1 tests \
+  pytest tests/test_webhook.py -v
 ```
 
 ---
