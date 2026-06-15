@@ -15,7 +15,9 @@ services:
       retries: 10
 
   resin:
-    build: .
+    build:
+      context: .
+      target: test
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,12 +44,14 @@ services:
       start_period: 15s
 
   tests:
-    build: .
+    build:
+      context: .
+      target: test
     depends_on:
       resin:
         condition: service_healthy
     environment:
-      RESIN_HOST: resin
+      RESIN_HOST: 127.0.0.1
     entrypoint: ["pytest", "tests/", "-v", "--tb=short"]
     network_mode: "service:resin"
 
