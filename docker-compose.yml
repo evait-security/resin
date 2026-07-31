@@ -31,8 +31,6 @@ services:
       - NET_BIND_SERVICE
     read_only: true
     volumes:
-      - resin_data:/data
-      - ./data/whitelist.txt:/data/whitelist.txt:ro
       - pgsock:/var/run/postgresql
       - type: tmpfs
         target: /tmp
@@ -42,5 +40,4 @@ services:
 
 volumes:
   pgdata:
-  resin_data:
   pgsock:

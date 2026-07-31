@@ -69,20 +69,27 @@ class HoneypotSSHServer(asyncssh.SSHServer):
         return False
 
 
-def generate_host_key():
-    if not os.path.exists(SSH_HOST_KEY_PATH):
-        os.makedirs(os.path.dirname(SSH_HOST_KEY_PATH), exist_ok=True)
+def generate_host_key(path=SSH_HOST_KEY_PATH):
+    """Ensure an SSH host key exists in the container and return its path.
+
+    The key is generated inside the container (in a writable directory such as
+    the /tmp tmpfs); it is not persisted to a mounted volume and is simply
+    regenerated on the next boot if missing.
+    """
+    if not os.path.exists(path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         key = asyncssh.generate_private_key("ssh-rsa", key_size=2048)
-        key.write_private_key(SSH_HOST_KEY_PATH)
+        key.write_private_key(path)
+    return path
 
 
 async def start_ssh_service(host="0.0.0.0", port=22):
-    generate_host_key()
+    host_key_path = generate_host_key()
     await asyncssh.create_server(
         HoneypotSSHServer,
         host,
         port,
-        server_host_keys=[SSH_HOST_KEY_PATH],
+        server_host_keys=[host_key_path],
         server_version="OpenSSH_8.9p1 Ubuntu-3ubuntu0.6",
         process_factory=None,
     )

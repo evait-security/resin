@@ -18,13 +18,11 @@ COPY assets/ assets/
 # Pre-compile to avoid write attempts against the read-only root FS at runtime
 RUN /app/venv/bin/python3 -m compileall -q src/ assets/ 2>/dev/null || true
 
-RUN mkdir -p /data
-
 # chown first (chown clears file caps), then setcap so the nonroot process
 # (uid 65532) can bind ports < 1024.  Requires cap_add: NET_BIND_SERVICE in
 # docker-compose so the capability remains in the bounding set.
 RUN apk add --no-cache libcap-utils && \
-    chown -R 65532:65532 /app /data && \
+    chown -R 65532:65532 /app && \
     setcap 'cap_net_bind_service=+eip' "$(readlink -f /app/venv/bin/python3)"
 
 # ── Stage 2: test ─────────────────────────────────────────────────────────────
@@ -43,7 +41,6 @@ COPY src/ src/
 COPY assets/ assets/
 COPY tests/ tests/
 COPY init.sql .
-RUN mkdir -p /data
 
 CMD ["python", "-m", "src.main"]
 
@@ -67,7 +64,6 @@ WORKDIR /app
 COPY --from=builder /app/venv /app/venv
 COPY --from=builder /app/src /app/src
 COPY --from=builder /app/assets /app/assets
-COPY --from=builder /data /data
 
 EXPOSE 21 22 80 443 445 1337 3306 6379
 EXPOSE 161/udp

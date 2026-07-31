@@ -278,34 +278,25 @@ All services run in a single Python process using asyncio. Events are logged dir
 |----------|---------|-------------|
 | `WEBHOOK_URL` | (empty) | HTTP endpoint for event delivery. Leave empty to disable. |
 | `DISPATCH_INTERVAL` | `30` | Seconds between webhook batch sends. |
-| `WHITELIST_IPS` | (empty) | Fallback comma/space-separated IPs and CIDR ranges used when `WHITELIST_FILE` is absent. |
+| `WHITELIST_IPS` | (empty) | Comma/space-separated IPs and CIDR ranges to whitelist. Configured in `.env`. |
 | `WHITELIST_IP_MASK` | (empty) | Newline-separated list of regular expressions matched against each source IP. A match drops the connection like a whitelisted IP. |
-| `WHITELIST_FILE` | `/data/whitelist.txt` | Path to the whitelist file inside the container. Reloaded automatically on change. Takes precedence over `WHITELIST_IPS`. |
+| `WHITELIST_FILE` | (empty) | Optional path to a whitelist file inside the container. Only used if set (e.g. when you bind-mount your own file); reloaded automatically on change and takes precedence over `WHITELIST_IPS`. |
 | `WHITELIST_RELOAD_INTERVAL` | `60` | Poll interval in seconds for detecting whitelist file changes. Send `SIGHUP` for immediate reload. |
 
 ### IP Whitelist
 
 Any client whose source IP matches a whitelist entry is dropped immediately by every service before any logging happens — no events are created and no webhook payloads are sent for it.
 
-**File-based (recommended):** edit `data/whitelist.txt` in the repo. The file is bind-mounted into the container and checked every 60 seconds (configurable via `WHITELIST_RELOAD_INTERVAL`). For an immediate reload without restarting:
-
-```bash
-docker compose exec resin kill -HUP 1
-```
-
-The file accepts individual IPv4/IPv6 addresses and CIDR ranges, one per line. Comments and blank lines are ignored:
-
-```
-# my admin host
-192.168.1.10
-10.0.0.0/24
-203.0.113.5
-```
-
-**Env-var fallback:** set `WHITELIST_IPS` in `.env`. Used only when `WHITELIST_FILE` is absent or empty.
+**Env-var (default):** set `WHITELIST_IPS` in `.env`. Accepts individual IPv4/IPv6 addresses and CIDR ranges, comma or space separated:
 
 ```
 WHITELIST_IPS=192.168.1.10, 10.0.0.0/24, 203.0.113.5
+```
+
+**File-based (optional):** set `WHITELIST_FILE` to a path you bind-mount into the container (one entry per line; comments and blank lines are ignored). It is checked every 60 seconds (configurable via `WHITELIST_RELOAD_INTERVAL`) and takes precedence over `WHITELIST_IPS`. For an immediate reload without restarting:
+
+```bash
+docker compose exec resin kill -HUP 1
 ```
 
 Invalid entries are ignored with a warning at startup.

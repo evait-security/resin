@@ -170,10 +170,7 @@ async def handle_any(request):
     return web.Response(text=LOGIN_PAGE, content_type="text/html")
 
 
-def generate_self_signed_cert():
-    if os.path.exists(TLS_CERT_PATH) and os.path.exists(TLS_KEY_PATH):
-        return
-    os.makedirs(os.path.dirname(TLS_CERT_PATH), exist_ok=True)
+def _write_self_signed_cert(cert_path, key_path):
     from cryptography import x509
     from cryptography.x509.oid import NameOID
     from cryptography.hazmat.primitives import hashes, serialization
@@ -197,14 +194,28 @@ def generate_self_signed_cert():
         .sign(key, hashes.SHA256())
     )
 
-    with open(TLS_KEY_PATH, "wb") as f:
+    with open(key_path, "wb") as f:
         f.write(key.private_bytes(
             serialization.Encoding.PEM,
             serialization.PrivateFormat.TraditionalOpenSSL,
             serialization.NoEncryption(),
         ))
-    with open(TLS_CERT_PATH, "wb") as f:
+    with open(cert_path, "wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
+
+
+def generate_self_signed_cert(cert_path=TLS_CERT_PATH, key_path=TLS_KEY_PATH):
+    """Ensure a TLS cert/key pair exists and return their paths.
+
+    The cert and key are generated inside the container (in a writable
+    directory such as the /tmp tmpfs); they are not persisted to a mounted
+    volume and are simply regenerated on the next boot if missing.
+    """
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        return cert_path, key_path
+    os.makedirs(os.path.dirname(cert_path), exist_ok=True)
+    _write_self_signed_cert(cert_path, key_path)
+    return cert_path, key_path
 
 
 def _create_app():
@@ -225,9 +236,9 @@ async def start_http_service(host="0.0.0.0", port=80):
 
 
 async def start_https_service(host="0.0.0.0", port=443):
-    generate_self_signed_cert()
+    cert_path, key_path = generate_self_signed_cert()
     ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_ctx.load_cert_chain(TLS_CERT_PATH, TLS_KEY_PATH)
+    ssl_ctx.load_cert_chain(cert_path, key_path)
 
     app = _create_app()
     runner = web.AppRunner(app)
