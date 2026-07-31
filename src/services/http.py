@@ -3,7 +3,7 @@ import os
 from aiohttp import web
 from src.database import log_event
 from src.mac_lookup import get_mac_for_ip
-from src.config import TLS_CERT_PATH, TLS_KEY_PATH, KEY_FALLBACK_DIR
+from src.config import TLS_CERT_PATH, TLS_KEY_PATH
 from src.whitelist import is_whitelisted
 
 
@@ -205,27 +205,17 @@ def _write_self_signed_cert(cert_path, key_path):
 
 
 def generate_self_signed_cert(cert_path=TLS_CERT_PATH, key_path=TLS_KEY_PATH):
-    """Ensure a TLS cert/key pair exists and return the usable paths.
+    """Ensure a TLS cert/key pair exists and return their paths.
 
-    Prefers the configured paths (the persistent /data volume). If that
-    location is not writable (root-owned volume, read-only FS, ...), the cert
-    and key are generated in a writable in-container fallback directory.
+    The cert and key are generated inside the container (in a writable
+    directory such as the /tmp tmpfs); they are not persisted to a mounted
+    volume and are simply regenerated on the next boot if missing.
     """
     if os.path.exists(cert_path) and os.path.exists(key_path):
         return cert_path, key_path
-    try:
-        os.makedirs(os.path.dirname(cert_path), exist_ok=True)
-        _write_self_signed_cert(cert_path, key_path)
-        return cert_path, key_path
-    except OSError as e:
-        print(f"[resin] TLS cert/key not writable at {cert_path} ({e}); "
-              f"generating an ephemeral cert in {KEY_FALLBACK_DIR}")
-        fb_cert = os.path.join(KEY_FALLBACK_DIR, os.path.basename(cert_path))
-        fb_key = os.path.join(KEY_FALLBACK_DIR, os.path.basename(key_path))
-        if not (os.path.exists(fb_cert) and os.path.exists(fb_key)):
-            os.makedirs(KEY_FALLBACK_DIR, exist_ok=True)
-            _write_self_signed_cert(fb_cert, fb_key)
-        return fb_cert, fb_key
+    os.makedirs(os.path.dirname(cert_path), exist_ok=True)
+    _write_self_signed_cert(cert_path, key_path)
+    return cert_path, key_path
 
 
 def _create_app():

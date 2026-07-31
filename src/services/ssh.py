@@ -2,7 +2,7 @@ import asyncssh
 import os
 from src.database import log_event
 from src.mac_lookup import get_mac_for_ip
-from src.config import SSH_HOST_KEY_PATH, KEY_FALLBACK_DIR
+from src.config import SSH_HOST_KEY_PATH
 from src.whitelist import is_whitelisted
 
 
@@ -70,28 +70,17 @@ class HoneypotSSHServer(asyncssh.SSHServer):
 
 
 def generate_host_key(path=SSH_HOST_KEY_PATH):
-    """Ensure an SSH host key exists and return its usable path.
+    """Ensure an SSH host key exists in the container and return its path.
 
-    Prefers the configured path (the persistent /data volume). If that
-    location is not writable (root-owned volume, read-only FS, ...), the key
-    is generated in a writable in-container fallback directory instead.
+    The key is generated inside the container (in a writable directory such as
+    the /tmp tmpfs); it is not persisted to a mounted volume and is simply
+    regenerated on the next boot if missing.
     """
-    if os.path.exists(path):
-        return path
-    try:
+    if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         key = asyncssh.generate_private_key("ssh-rsa", key_size=2048)
         key.write_private_key(path)
-        return path
-    except OSError as e:
-        print(f"[resin] SSH host key not writable at {path} ({e}); "
-              f"generating an ephemeral key in {KEY_FALLBACK_DIR}")
-        fallback = os.path.join(KEY_FALLBACK_DIR, os.path.basename(path))
-        if not os.path.exists(fallback):
-            os.makedirs(KEY_FALLBACK_DIR, exist_ok=True)
-            key = asyncssh.generate_private_key("ssh-rsa", key_size=2048)
-            key.write_private_key(fallback)
-        return fallback
+    return path
 
 
 async def start_ssh_service(host="0.0.0.0", port=22):
