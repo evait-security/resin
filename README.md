@@ -279,6 +279,7 @@ All services run in a single Python process using asyncio. Events are logged dir
 | `WEBHOOK_URL` | (empty) | HTTP endpoint for event delivery. Leave empty to disable. |
 | `DISPATCH_INTERVAL` | `30` | Seconds between webhook batch sends. |
 | `WHITELIST_IPS` | (empty) | Fallback comma/space-separated IPs and CIDR ranges used when `WHITELIST_FILE` is absent. |
+| `WHITELIST_IP_MASK` | (empty) | Newline-separated list of regular expressions matched against each source IP. A match drops the connection like a whitelisted IP. |
 | `WHITELIST_FILE` | `/data/whitelist.txt` | Path to the whitelist file inside the container. Reloaded automatically on change. Takes precedence over `WHITELIST_IPS`. |
 | `WHITELIST_RELOAD_INTERVAL` | `60` | Poll interval in seconds for detecting whitelist file changes. Send `SIGHUP` for immediate reload. |
 
@@ -308,6 +309,23 @@ WHITELIST_IPS=192.168.1.10, 10.0.0.0/24, 203.0.113.5
 ```
 
 Invalid entries are ignored with a warning at startup.
+
+**Regex masks:** set `WHITELIST_IP_MASK` in `.env` to one or more regular expressions (one per line) that are matched against the source IP string of every request. Any match drops the connection just like a whitelisted IP. This is evaluated independently of `WHITELIST_IPS`/`WHITELIST_FILE`, so exact IP/CIDR matching is never mixed with regex matching. Because each pattern is a whole line, commas inside a regex (for example quantifiers like `{1,3}`) are preserved.
+
+```
+# whitelist any source IP ending in .7
+WHITELIST_IP_MASK=\.7$
+```
+
+For multiple patterns, wrap the value in double quotes and put one regex per line:
+
+```
+WHITELIST_IP_MASK="\.7$
+^10\.
+^192\.168\."
+```
+
+Invalid patterns are ignored with a warning at startup.
 
 ---
 

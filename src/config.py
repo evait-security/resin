@@ -12,6 +12,11 @@ DISPATCH_INTERVAL = int(os.environ.get("DISPATCH_INTERVAL", "30"))
 # ignored: connections are dropped at the earliest possible point and no
 # events are generated.
 WHITELIST_IPS = os.environ.get("WHITELIST_IPS", "")
+# Newline/comma separated list of regular expressions. Each pattern is
+# evaluated against the source IP string of every request; a match causes the
+# connection to be dropped just like a whitelisted IP. Kept separate from
+# WHITELIST_IPS to avoid mixing exact IP/CIDR matching with regex matching.
+WHITELIST_IP_MASK = os.environ.get("WHITELIST_IP_MASK", "")
 WHITELIST_FILE = os.environ.get("WHITELIST_FILE", "/data/whitelist.txt")
 WHITELIST_RELOAD_INTERVAL = int(os.environ.get("WHITELIST_RELOAD_INTERVAL", "60"))
 WEB_HOST = os.environ.get("WEB_HOST", "127.0.0.1")
