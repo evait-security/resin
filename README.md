@@ -317,6 +317,14 @@ Invalid entries are ignored with a warning at startup.
 WHITELIST_IP_MASK=\.7$
 ```
 
+For multiple patterns, wrap the value in double quotes and put one regex per line:
+
+```
+WHITELIST_IP_MASK="\.7$
+^10\.
+^192\.168\."
+```
+
 Invalid patterns are ignored with a warning at startup.
 
 ---
