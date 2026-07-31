@@ -95,8 +95,13 @@ async def handle_static(request):
         raise web.HTTPForbidden()
     if not filepath.exists() or not filepath.is_file():
         raise web.HTTPNotFound()
-    content_type = "text/css" if filename.endswith(".css") else "application/javascript"
-    return web.Response(text=filepath.read_text(), content_type=content_type)
+    if filename.endswith(".css"):
+        content_type = "text/css"
+    elif filename.endswith(".js"):
+        content_type = "application/javascript"
+    else:
+        content_type = "application/octet-stream"
+    return web.Response(body=filepath.read_bytes(), content_type=content_type)
 
 
 async def handle_logo(request):
@@ -113,7 +118,7 @@ async def start_web_server(host=None, port=None):
     app.router.add_get("/", handle_index)
     app.router.add_get("/api/events", handle_api_events)
     app.router.add_get("/events/stream", handle_event_stream)
-    app.router.add_get("/static/{filename}", handle_static)
+    app.router.add_get("/static/{filename:.*}", handle_static)
     app.router.add_get("/logo.svg", handle_logo)
 
     runner = web.AppRunner(app)

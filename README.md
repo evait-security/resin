@@ -279,6 +279,7 @@ All services run in a single Python process using asyncio. Events are logged dir
 | `WEBHOOK_URL` | (empty) | HTTP endpoint for event delivery. Leave empty to disable. |
 | `DISPATCH_INTERVAL` | `30` | Seconds between webhook batch sends. |
 | `WHITELIST_IPS` | (empty) | Comma/space-separated IPs and CIDR ranges to whitelist. Configured in `.env`. |
+| `WHITELIST_IP_MASK` | (empty) | Newline-separated list of regular expressions matched against each source IP. A match drops the connection like a whitelisted IP. |
 | `WHITELIST_FILE` | (empty) | Optional path to a whitelist file inside the container. Only used if set (e.g. when you bind-mount your own file); reloaded automatically on change and takes precedence over `WHITELIST_IPS`. |
 | `WHITELIST_RELOAD_INTERVAL` | `60` | Poll interval in seconds for detecting whitelist file changes. Send `SIGHUP` for immediate reload. |
 
@@ -299,6 +300,23 @@ docker compose exec resin kill -HUP 1
 ```
 
 Invalid entries are ignored with a warning at startup.
+
+**Regex masks:** set `WHITELIST_IP_MASK` in `.env` to one or more regular expressions (one per line) that are matched against the source IP string of every request. Any match drops the connection just like a whitelisted IP. This is evaluated independently of `WHITELIST_IPS`/`WHITELIST_FILE`, so exact IP/CIDR matching is never mixed with regex matching. Because each pattern is a whole line, commas inside a regex (for example quantifiers like `{1,3}`) are preserved.
+
+```
+# whitelist any source IP ending in .7
+WHITELIST_IP_MASK=\.7$
+```
+
+For multiple patterns, wrap the value in double quotes and put one regex per line:
+
+```
+WHITELIST_IP_MASK="\.7$
+^10\.
+^192\.168\."
+```
+
+Invalid patterns are ignored with a warning at startup.
 
 ---
 

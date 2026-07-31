@@ -1,10 +1,17 @@
 import os
+import re
 import asyncio
 import ipaddress
 
-from src.config import WHITELIST_IPS, WHITELIST_FILE, WHITELIST_RELOAD_INTERVAL
+from src.config import (
+    WHITELIST_IPS,
+    WHITELIST_IP_MASK,
+    WHITELIST_FILE,
+    WHITELIST_RELOAD_INTERVAL,
+)
 
 _WHITELIST_NETWORKS: list = []
+_WHITELIST_MASKS: list = []
 _last_mtime: float | None = None
 
 
@@ -27,6 +34,25 @@ def _parse_whitelist(raw: str) -> list:
     return networks
 
 
+def _parse_masks(raw: str) -> list:
+    """Parse a newline separated list of regular expressions.
+
+    Each non-empty line is treated as a single regex pattern so commas and
+    spaces inside a pattern are preserved. Full-line comments starting with #
+    are ignored. Invalid patterns are skipped with a warning.
+    """
+    masks = []
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        try:
+            masks.append(re.compile(stripped))
+        except re.error as e:
+            print(f"[resin] Ungültige Whitelist-Maske ignoriert: {stripped!r} ({e})")
+    return masks
+
+
 def load_whitelist() -> None:
     """Load or reload the whitelist from file or environment variable.
 
@@ -46,17 +72,26 @@ def load_whitelist() -> None:
     else:
         _last_mtime = None
     _WHITELIST_NETWORKS[:] = _parse_whitelist(raw or WHITELIST_IPS)
+    _WHITELIST_MASKS[:] = _parse_masks(WHITELIST_IP_MASK)
     if _WHITELIST_NETWORKS:
         print(f"[resin] Whitelist: {', '.join(str(n) for n in _WHITELIST_NETWORKS)}")
+    if _WHITELIST_MASKS:
+        print(f"[resin] Whitelist-Masken: {', '.join(m.pattern for m in _WHITELIST_MASKS)}")
 
 
 def is_whitelisted(ip: str) -> bool:
     """Return True if the given IP is on the configured whitelist.
 
-    Whitelisted IPs are dropped at the earliest possible point in each
-    service and never generate events.
+    An IP is whitelisted if it falls inside one of the configured IP/CIDR
+    networks (WHITELIST_IPS / WHITELIST_FILE) or if it matches one of the
+    configured regex masks (WHITELIST_IP_MASK). Whitelisted IPs are dropped at
+    the earliest possible point in each service and never generate events.
     """
-    if not _WHITELIST_NETWORKS or not ip:
+    if not ip:
+        return False
+    if _WHITELIST_MASKS and any(m.search(ip) for m in _WHITELIST_MASKS):
+        return True
+    if not _WHITELIST_NETWORKS:
         return False
     try:
         addr = ipaddress.ip_address(ip)

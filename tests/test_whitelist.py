@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def reload_whitelist_module(env: dict):
     """Modul + config mit frischer Env-Var-Umgebung neu laden."""
-    for key in ("WHITELIST_IPS", "WHITELIST_FILE", "WHITELIST_RELOAD_INTERVAL"):
+    for key in ("WHITELIST_IPS", "WHITELIST_IP_MASK", "WHITELIST_FILE", "WHITELIST_RELOAD_INTERVAL"):
         os.environ.pop(key, None)
     os.environ.update(env)
     for mod in ("src.config", "src.whitelist"):
@@ -244,6 +244,79 @@ def test_13_asyncio_sighup_handler():
         loop.remove_signal_handler(signal.SIGHUP)
 
     asyncio.run(_run())
+
+
+def test_14_mask_matches_suffix():
+    wl = reload_whitelist_module({
+        "WHITELIST_IPS": "",
+        "WHITELIST_IP_MASK": r"\.7$",
+        "WHITELIST_FILE": "/nonexistent",
+    })
+    wl.load_whitelist()
+    assert wl.is_whitelisted("192.168.1.7")
+    assert wl.is_whitelisted("10.0.0.7")
+    assert not wl.is_whitelisted("192.168.1.70")
+    assert not wl.is_whitelisted("192.168.1.8")
+
+
+def test_15_multiple_masks_newline_separated():
+    wl = reload_whitelist_module({
+        "WHITELIST_IPS": "",
+        "WHITELIST_IP_MASK": "\n".join([r"^10\.", r"\.255$"]),
+        "WHITELIST_FILE": "/nonexistent",
+    })
+    wl.load_whitelist()
+    assert len(wl._WHITELIST_MASKS) == 2
+    assert wl.is_whitelisted("10.1.2.3")
+    assert wl.is_whitelisted("192.168.0.255")
+    assert not wl.is_whitelisted("192.168.0.1")
+
+
+def test_16_mask_with_comma_quantifier():
+    # A comma inside a regex quantifier must be preserved (not split on).
+    wl = reload_whitelist_module({
+        "WHITELIST_IPS": "",
+        "WHITELIST_IP_MASK": r"^172\.16\.\d{1,3}\.\d{1,3}$",
+        "WHITELIST_FILE": "/nonexistent",
+    })
+    wl.load_whitelist()
+    assert len(wl._WHITELIST_MASKS) == 1
+    assert wl.is_whitelisted("172.16.5.9")
+    assert not wl.is_whitelisted("172.17.5.9")
+
+
+def test_17_mask_and_ip_combined():
+    wl = reload_whitelist_module({
+        "WHITELIST_IPS": "10.0.0.1",
+        "WHITELIST_IP_MASK": r"\.7$",
+        "WHITELIST_FILE": "/nonexistent",
+    })
+    wl.load_whitelist()
+    assert wl.is_whitelisted("10.0.0.1")     # IP whitelist
+    assert wl.is_whitelisted("8.8.8.7")      # mask
+    assert not wl.is_whitelisted("8.8.8.8")
+
+
+def test_18_invalid_mask_ignored():
+    wl = reload_whitelist_module({
+        "WHITELIST_IPS": "",
+        "WHITELIST_IP_MASK": "\n".join([r"[", r"\.7$", "# a comment"]),
+        "WHITELIST_FILE": "/nonexistent",
+    })
+    wl.load_whitelist()
+    assert len(wl._WHITELIST_MASKS) == 1
+    assert wl.is_whitelisted("1.2.3.7")
+
+
+def test_19_ipv6_mask():
+    wl = reload_whitelist_module({
+        "WHITELIST_IPS": "",
+        "WHITELIST_IP_MASK": r"^2001:db8:",
+        "WHITELIST_FILE": "/nonexistent",
+    })
+    wl.load_whitelist()
+    assert wl.is_whitelisted("2001:db8::1")
+    assert not wl.is_whitelisted("2001:db9::1")
 
 
 # ── Standalone runner ─────────────────────────────────────────────────────────
