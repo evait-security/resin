@@ -282,6 +282,7 @@ All services run in a single Python process using asyncio. Events are logged dir
 | `WHITELIST_IP_MASK` | (empty) | Newline-separated list of regular expressions matched against each source IP. A match drops the connection like a whitelisted IP. |
 | `WHITELIST_FILE` | (empty) | Optional path to a whitelist file inside the container. Only used if set (e.g. when you bind-mount your own file); reloaded automatically on change and takes precedence over `WHITELIST_IPS`. |
 | `WHITELIST_RELOAD_INTERVAL` | `60` | Poll interval in seconds for detecting whitelist file changes. Send `SIGHUP` for immediate reload. |
+| `DISABLED_SERVICES` | (empty) | Comma/space separated list of services that will NOT be started. Their ports stay closed. Valid names: `ssh`, `ftp`, `http`, `https`, `smb`, `snmp`, `mysql`, `redis`. |
 
 ### IP Whitelist
 
@@ -317,6 +318,24 @@ WHITELIST_IP_MASK="\.7$
 ```
 
 Invalid patterns are ignored with a warning at startup.
+
+### Disabling Services
+
+Use `DISABLED_SERVICES` to turn individual honeypot services off completely. A disabled service is never started, so its port stays closed - nothing listens, nothing responds, nothing gets logged.
+
+This is useful if a service causes trouble in your environment (for example SNMP, which uses UDP and can conflict with other agents) or if you simply don't want to expose a specific port.
+
+```
+DISABLED_SERVICES=snmp
+```
+
+Multiple services are separated by commas or whitespace:
+
+```
+DISABLED_SERVICES=snmp, mysql, redis
+```
+
+Valid names are `ssh`, `ftp`, `http`, `https`, `smb`, `snmp`, `mysql`, and `redis`. The web dashboard (`web`) always runs and cannot be disabled. Unknown names are ignored; disabled services are listed in the log output at startup (`[resin] Disabled services: ...`).
 
 ---
 

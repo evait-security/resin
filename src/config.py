@@ -22,6 +22,15 @@ WHITELIST_IP_MASK = os.environ.get("WHITELIST_IP_MASK", "")
 # bind-mount your own file into the container.
 WHITELIST_FILE = os.environ.get("WHITELIST_FILE", "")
 WHITELIST_RELOAD_INTERVAL = int(os.environ.get("WHITELIST_RELOAD_INTERVAL", "60"))
+# Comma/space separated list of services to disable. Disabled services are
+# never started, so their ports stay closed. Valid names: ssh, ftp, http,
+# https, smb, snmp, mysql, redis. The web dashboard (web) cannot be disabled.
+# Example: DISABLED_SERVICES=snmp, mysql
+DISABLED_SERVICES = {
+    s.strip().lower()
+    for s in os.environ.get("DISABLED_SERVICES", "").replace(",", " ").split()
+    if s.strip()
+}
 WEB_HOST = os.environ.get("WEB_HOST", "127.0.0.1")
 WEB_PORT = int(os.environ.get("WEB_PORT", "1337"))
 # SSH host key and TLS cert/key are generated inside the container at runtime.

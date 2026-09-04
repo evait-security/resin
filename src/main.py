@@ -2,7 +2,7 @@ import asyncio
 import signal
 import sys
 
-from src.config import WEBHOOK_URL
+from src.config import WEBHOOK_URL, DISABLED_SERVICES
 from src.database import init_pool, close_pool
 from src.dispatcher import dispatch_loop
 from src.web.server import start_web_server
@@ -43,62 +43,34 @@ async def main():
     await wait_for_postgres()
     await init_pool()
 
-    # Start all services
+    # Start all services (except those disabled via DISABLED_SERVICES)
     services = []
+    disabled = []
 
-    try:
-        await start_ssh_service()
-        services.append("ssh:22")
-    except Exception as e:
-        print(f"[resin] SSH failed to start: {e}")
+    service_defs = [
+        ("ssh", "ssh:22", start_ssh_service),
+        ("http", "http:80", start_http_service),
+        ("https", "https:443", start_https_service),
+        ("smb", "smb:445", start_smb_service),
+        ("snmp", "snmp:161", start_snmp_service),
+        ("mysql", "mysql:3306", start_mysql_service),
+        ("redis", "redis:6379", start_redis_service),
+        ("web", "web:1337", start_web_server),
+        ("ftp", "ftp:21", start_ftp_service),
+    ]
 
-    try:
-        await start_http_service()
-        services.append("http:80")
-    except Exception as e:
-        print(f"[resin] HTTP failed to start: {e}")
+    for name, label, starter in service_defs:
+        if name in DISABLED_SERVICES:
+            disabled.append(label)
+            continue
+        try:
+            await starter()
+            services.append(label)
+        except Exception as e:
+            print(f"[resin] {name.upper()} failed to start: {e}")
 
-    try:
-        await start_https_service()
-        services.append("https:443")
-    except Exception as e:
-        print(f"[resin] HTTPS failed to start: {e}")
-
-    try:
-        await start_smb_service()
-        services.append("smb:445")
-    except Exception as e:
-        print(f"[resin] SMB failed to start: {e}")
-
-    try:
-        await start_snmp_service()
-        services.append("snmp:161")
-    except Exception as e:
-        print(f"[resin] SNMP failed to start: {e}")
-
-    try:
-        await start_mysql_service()
-        services.append("mysql:3306")
-    except Exception as e:
-        print(f"[resin] MySQL failed to start: {e}")
-
-    try:
-        await start_redis_service()
-        services.append("redis:6379")
-    except Exception as e:
-        print(f"[resin] Redis failed to start: {e}")
-
-    try:
-        await start_web_server()
-        services.append("web:1337")
-    except Exception as e:
-        print(f"[resin] Web UI failed to start: {e}")
-
-    try:
-        await start_ftp_service()
-        services.append("ftp:21")
-    except Exception as e:
-        print(f"[resin] FTP failed to start: {e}")
+    if disabled:
+        print(f"[resin] Disabled services: {', '.join(disabled)}")
 
     print(f"[resin] Active services: {', '.join(services)}")
 
